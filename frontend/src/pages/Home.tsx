@@ -45,7 +45,7 @@ const Home = () => {
                   <div style={styles.actionIcon}>🔍</div>
                   <div style={styles.actionLabel}>Find Workers</div>
                 </div>
-                <div style={styles.actionCard}>
+                <div style={styles.actionCard} onClick={() => navigate('/my-jobs')}>
                   <div style={styles.actionIcon}>📋</div>
                   <div style={styles.actionLabel}>My Jobs</div>
                 </div>
@@ -56,7 +56,7 @@ const Home = () => {
               </>
             ) : (
               <>
-                <div style={styles.actionCard}>
+                <div style={styles.actionCard} onClick={() => navigate('/browse-jobs')}>
                   <div style={styles.actionIcon}>🔍</div>
                   <div style={styles.actionLabel}>Browse Jobs</div>
                 </div>
@@ -64,7 +64,7 @@ const Home = () => {
                   <div style={styles.actionIcon}>🛠️</div>
                   <div style={styles.actionLabel}>My Skills</div>
                 </div>
-                <div style={styles.actionCard}>
+                <div style={styles.actionCard} onClick={() => navigate('/my-work')}>
                   <div style={styles.actionIcon}>📋</div>
                   <div style={styles.actionLabel}>My Work</div>
                 </div>

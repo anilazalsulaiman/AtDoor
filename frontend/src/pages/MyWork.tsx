@@ -13,71 +13,57 @@ interface Job {
   budgetMin: number | null
   budgetMax: number | null
   status: string
-  contactPreference: string
   createdAt: string
   category: {
     id: number
     name: string
     icon: string
   } | null
-  suggestion: {
+  creator: {
     id: number
-    suggestedName: string
-    status: string
-  } | null
-  photos: { photoUrl: string }[]
+    firstName: string
+    lastName: string
+    phone: string
+    email: string
+  }
 }
 
 const statusConfig: { [key: string]: { label: string; color: string; bg: string; icon: string } } = {
-  PENDING: { label: 'Pending Approval', color: '#b45309', bg: '#fef3c7', icon: '⏳' },
-  PUBLISHED: { label: 'Published', color: '#1d4ed8', bg: '#eff6ff', icon: '📢' },
-  WORK_ACCEPTED: { label: 'Work Accepted', color: '#7c3aed', bg: '#ede9fe', icon: '🤝' },
-  WORK_STARTED: { label: 'Work Started', color: '#15803d', bg: '#f0fdf4', icon: '▶️' },
+  WORK_ACCEPTED: { label: 'Accepted', color: '#7c3aed', bg: '#ede9fe', icon: '🤝' },
+  WORK_STARTED: { label: 'In Progress', color: '#15803d', bg: '#f0fdf4', icon: '▶️' },
   WORK_ENDED: { label: 'Work Ended', color: '#15803d', bg: '#f0fdf4', icon: '✅' },
-  PAYMENT_COMPLETED: { label: 'Payment Completed', color: '#15803d', bg: '#f0fdf4', icon: '💰' },
+  PAYMENT_COMPLETED: { label: 'Completed', color: '#15803d', bg: '#f0fdf4', icon: '💰' },
   RESCHEDULED: { label: 'Rescheduled', color: '#6b7280', bg: '#f3f4f6', icon: '🔄' },
-  EXPIRED: { label: 'Expired', color: '#9ca3af', bg: '#f9fafb', icon: '⌛' },
   CANCELLED: { label: 'Cancelled', color: '#dc2626', bg: '#fef2f2', icon: '❌' },
 }
 
-const MyJobs = () => {
+const MyWork = () => {
   const navigate = useNavigate()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeFilter, setActiveFilter] = useState('ALL')
 
-  const filters = ['ALL', 'PUBLISHED', 'PENDING', 'WORK_ACCEPTED', 'WORK_STARTED', 'COMPLETED', 'CANCELLED', 'EXPIRED']
+  const filters = ['ALL', 'WORK_ACCEPTED', 'WORK_STARTED', 'WORK_ENDED', 'PAYMENT_COMPLETED', 'CANCELLED']
 
   useEffect(() => {
-    fetchMyJobs()
+    fetchMyWork()
   }, [])
 
-  const fetchMyJobs = async () => {
+  const fetchMyWork = async () => {
     try {
       setLoading(true)
-      const res = await api.get('/jobs/my-jobs')
+      const res = await api.get('/jobs/my-work')
       setJobs(res.data.data)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch jobs')
+      setError(err.response?.data?.message || 'Failed to fetch your work')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleCancelJob = async (jobId: number) => {
-    if (!window.confirm('Are you sure you want to cancel this job?')) return
-    try {
-      await api.put(`/jobs/${jobId}/cancel`)
-      fetchMyJobs()
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to cancel job')
-    }
-  }
-
   const filteredJobs = jobs.filter((job) => {
     if (activeFilter === 'ALL') return true
-    if (activeFilter === 'COMPLETED') return job.status === 'PAYMENT_COMPLETED' || job.status === 'WORK_ENDED'
     return job.status === activeFilter
   })
 
@@ -98,12 +84,15 @@ const MyJobs = () => {
 
         {/* Header row */}
         <div style={styles.topRow}>
-          <h2 style={styles.title}>My Jobs</h2>
+          <div>
+            <h2 style={styles.title}>My Work</h2>
+            <p style={styles.subtitle}>Jobs you have accepted and worked on</p>
+          </div>
           <button
-            style={styles.postBtn}
-            onClick={() => navigate('/post-job')}
+            style={styles.browseBtn}
+            onClick={() => navigate('/browse-jobs')}
           >
-            + Post New Job
+            🔍 Find More Work
           </button>
         </div>
 
@@ -114,19 +103,19 @@ const MyJobs = () => {
               key={filter}
               style={{
                 ...styles.filterTab,
-                backgroundColor: activeFilter === filter ? '#2563eb' : '#f3f4f6',
+                backgroundColor: activeFilter === filter ? '#10b981' : '#f3f4f6',
                 color: activeFilter === filter ? '#ffffff' : '#6b7280',
               }}
               onClick={() => setActiveFilter(filter)}
             >
-              {filter === 'ALL' ? 'All' : filter.replace('_', ' ')}
+              {filter === 'ALL' ? 'All' : filter.replace(/_/g, ' ')}
             </div>
           ))}
         </div>
 
         {/* Loading */}
         {loading && (
-          <div style={styles.centerMsg}>Loading your jobs...</div>
+          <div style={styles.centerMsg}>Loading your work...</div>
         )}
 
         {/* Error */}
@@ -137,18 +126,18 @@ const MyJobs = () => {
         {/* Empty state */}
         {!loading && filteredJobs.length === 0 && (
           <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>📋</div>
-            <p style={styles.emptyTitle}>No jobs found</p>
+            <div style={styles.emptyIcon}>🛠️</div>
+            <p style={styles.emptyTitle}>No work found</p>
             <p style={styles.emptyText}>
               {activeFilter === 'ALL'
-                ? "You haven't posted any jobs yet."
-                : `No jobs with status "${activeFilter}".`}
+                ? "You haven't accepted any jobs yet."
+                : `No jobs with status "${activeFilter.replace(/_/g, ' ')}".`}
             </p>
             <button
-              style={styles.postBtn}
-              onClick={() => navigate('/post-job')}
+              style={styles.browseBtn}
+              onClick={() => navigate('/browse-jobs')}
             >
-              Post Your First Job
+              Browse Available Jobs
             </button>
           </div>
         )}
@@ -156,18 +145,15 @@ const MyJobs = () => {
         {/* Job cards */}
         <div style={styles.jobList}>
           {filteredJobs.map((job) => {
-            const status = statusConfig[job.status] || statusConfig.PUBLISHED
-            const canCancel = !['WORK_STARTED', 'PAYMENT_COMPLETED', 'CANCELLED', 'EXPIRED', 'WORK_ENDED'].includes(job.status)
+            const status = statusConfig[job.status] || statusConfig.WORK_ACCEPTED
 
             return (
               <div key={job.id} style={styles.jobCard}>
 
-                {/* Top row — category + status */}
+                {/* Top row */}
                 <div style={styles.cardTopRow}>
                   <div style={styles.categoryTag}>
-                    {job.category
-                      ? `${job.category.icon} ${job.category.name}`
-                      : `⏳ ${job.suggestion?.suggestedName} (Pending)`}
+                    {job.category?.icon} {job.category?.name}
                   </div>
                   <div style={{
                     ...styles.statusBadge,
@@ -178,14 +164,7 @@ const MyJobs = () => {
                   </div>
                 </div>
 
-                {/* Pending banner */}
-                {job.status === 'PENDING' && (
-                  <div style={styles.pendingBanner}>
-                    ⏳ Your job is waiting for category approval before it gets published to workers.
-                  </div>
-                )}
-
-                {/* Job title */}
+                {/* Title */}
                 <h3 style={styles.jobTitle}>{job.title}</h3>
 
                 {/* Description */}
@@ -195,7 +174,7 @@ const MyJobs = () => {
                     : job.description}
                 </p>
 
-                {/* Details row */}
+                {/* Details */}
                 <div style={styles.detailsRow}>
                   <span style={styles.detail}>📍 {job.location}</span>
                   <span style={styles.detail}>🕐 {formatDate(job.startTime)}</span>
@@ -206,34 +185,37 @@ const MyJobs = () => {
                   )}
                 </div>
 
-                {/* Footer row */}
-                <div style={styles.cardFooter}>
-                  <span style={styles.postedDate}>
-                    Posted {formatDate(job.createdAt)}
+                {/* Creator contact */}
+                <div style={styles.creatorRow}>
+                  <span style={styles.creatorName}>
+                    👤 {job.creator.firstName} {job.creator.lastName}
                   </span>
-                  <div style={styles.actionBtns}>
-                    <button
-                      style={styles.viewBtn}
-                      onClick={() => navigate(`/jobs/${job.id}`)}
-                    >
-                      View
-                    </button>
-                    {canCancel && (
-                      <button
-                        style={styles.cancelBtn}
-                        onClick={() => handleCancelJob(job.id)}
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </div>
+                  
+                    <a
+                        href={`tel:${job.creator.phone}`}
+                        style={styles.callBtn}
+                        >
+                        📞 Call
+                    </a>
                 </div>
 
-              </div>
+                {/* Footer */}
+                <div style={styles.cardFooter}>
+                  <span style={styles.postedDate}>
+                    Posted on {formatDate(job.createdAt)}
+                    </span>
+                    <button
+                        style={styles.viewBtn}
+                        onClick={() => navigate(`/jobs/${job.id}`)}
+                    >
+                        View Details
+                    </button>
+                </div>
+                </div>
             )
-          })}
+          }
+            )}
         </div>
-
       </div>
     </div>
   )
@@ -249,7 +231,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   topRow: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: '16px',
     flexWrap: 'wrap',
@@ -259,10 +241,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '20px',
     fontWeight: '600',
     color: '#111827',
+    margin: '0 0 4px 0',
+  },
+  subtitle: {
+    fontSize: '13px',
+    color: '#6b7280',
     margin: 0,
   },
-  postBtn: {
-    backgroundColor: '#2563eb',
+  browseBtn: {
+    backgroundColor: '#10b981',
     color: '#ffffff',
     border: 'none',
     borderRadius: '8px',
@@ -355,16 +342,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '3px 10px',
     borderRadius: '99px',
   },
-  pendingBanner: {
-    backgroundColor: '#fef3c7',
-    border: '1px solid #fde68a',
-    color: '#b45309',
-    padding: '8px 12px',
-    borderRadius: '8px',
-    fontSize: '12px',
-    marginBottom: '10px',
-    lineHeight: '1.5',
-  },
   jobTitle: {
     fontSize: '15px',
     fontWeight: '600',
@@ -387,6 +364,31 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '12px',
     color: '#6b7280',
   },
+  creatorRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f9fafb',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    marginBottom: '12px',
+  },
+  creatorName: {
+    fontSize: '13px',
+    color: '#374151',
+    fontWeight: '500',
+  },
+  callBtn: {
+    backgroundColor: '#f0fdf4',
+    color: '#15803d',
+    border: '1px solid #bbf7d0',
+    borderRadius: '6px',
+    padding: '4px 12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    textDecoration: 'none',
+    cursor: 'pointer',
+  },
   cardFooter: {
     display: 'flex',
     alignItems: 'center',
@@ -400,10 +402,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '11px',
     color: '#9ca3af',
   },
-  actionBtns: {
-    display: 'flex',
-    gap: '8px',
-  },
   viewBtn: {
     backgroundColor: '#f3f4f6',
     color: '#374151',
@@ -414,16 +412,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '500',
     cursor: 'pointer',
   },
-  cancelBtn: {
-    backgroundColor: '#fef2f2',
-    color: '#dc2626',
-    border: '1px solid #fecaca',
-    borderRadius: '6px',
-    padding: '6px 14px',
-    fontSize: '12px',
-    fontWeight: '500',
-    cursor: 'pointer',
-  },
 }
 
-export default MyJobs
+export default MyWork

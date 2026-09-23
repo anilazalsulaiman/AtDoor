@@ -339,3 +339,107 @@ export const cancelJob = async (req: AuthRequest, res: Response) => {
     return sendError(res, 'Failed to cancel job', 500)
   }
 }
+// ─────────────────────────────────────────
+// ACCEPT JOB (worker only)
+// ─────────────────────────────────────────
+export const acceptJob = async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const workerId = req.userId!
+
+    const job = await prisma.job.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        creator: {
+          select: { id: true, firstName: true }
+        }
+      }
+    })
+
+    if (!job) {
+      return sendError(res, 'Job not found', 404)
+    }
+
+    // Cannot accept own job
+    if (job.creatorId === workerId) {
+      return sendError(res, 'You cannot accept your own job', 400)
+    }
+
+    // Only published jobs can be accepted
+    if (job.status !== 'PUBLISHED') {
+      return sendError(res, `Job is ${job.status.toLowerCase()} and cannot be accepted`, 400)
+    }
+
+   // Update job status and assign worker
+const updatedJob = await prisma.job.update({
+  where: { id: parseInt(id) },
+  data: {
+    status: 'WORK_ACCEPTED',
+    workerId: workerId,
+  },
+})
+
+    // Notify creator
+    await prisma.notification.create({
+      data: {
+        userId: job.creatorId,
+        jobId: job.id,
+        title: '🤝 Worker Accepted Your Job!',
+        message: `A worker has accepted your job "${job.title}". Please confirm to proceed.`,
+      },
+    })
+
+    // Notify worker
+    await prisma.notification.create({
+      data: {
+        userId: workerId,
+        jobId: job.id,
+        title: '✅ Job Accepted Successfully!',
+        message: `You have accepted the job "${job.title}". Waiting for creator confirmation.`,
+      },
+    })
+
+    return sendSuccess(res, updatedJob, 'Job accepted successfully!')
+  } catch (error) {
+    console.error('Accept job error:', error)
+    return sendError(res, 'Failed to accept job', 500)
+  }
+}
+// ─────────────────────────────────────────
+// GET MY WORK (for worker)
+// ─────────────────────────────────────────
+export const getMyWork = async (req: AuthRequest, res: Response) => {
+  try {
+    const workerId = req.userId!
+    const { status } = req.query
+
+    const where: any = {
+      workerId,
+    }
+    if (status) where.status = status
+
+    const jobs = await prisma.job.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        category: {
+          select: { id: true, name: true, icon: true },
+        },
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    return sendSuccess(res, jobs, 'My work fetched successfully')
+  } catch (error) {
+    console.error('Get my work error:', error)
+    return sendError(res, 'Failed to fetch your work', 500)
+  }
+}

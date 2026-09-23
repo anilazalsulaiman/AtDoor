@@ -1,7 +1,8 @@
  
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import api from '../../utils/api'
 
 const Header = () => {
   const { user, logout, updateUser } = useAuth()
@@ -10,17 +11,35 @@ const Header = () => {
 
   const isCreator = user?.activeMode === 'CREATOR'
 
-  const handleModeSwitch = () => {
-    if (!user) return
-    const newMode = isCreator ? 'WORKER' : 'CREATOR'
-    updateUser({ ...user, activeMode: newMode })
-    // TODO: call API to save mode switch in DB
+  const handleModeSwitch = async () => {
+  if (!user) return
+  const newMode = isCreator ? 'WORKER' : 'CREATOR'
+  try {
+    const res = await api.put('/auth/switch-mode', { mode: newMode })
+    updateUser(res.data.data)
+  } catch (err) {
+    console.error('Failed to switch mode')
   }
+}
 
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
+
+  const [unreadCount, setUnreadCount] = useState(0)
+  useEffect(() => {
+  fetchUnreadCount()
+}, [])
+
+const fetchUnreadCount = async () => {
+  try {
+    const res = await api.get('/notifications/unread-count')
+    setUnreadCount(res.data.data.count)
+  } catch (err) {
+    console.error('Failed to fetch unread count')
+  }
+}
 
   return (
     <header style={styles.header}>
@@ -71,10 +90,18 @@ const Header = () => {
           {isCreator ? '🏠 Creator' : '🔧 Worker'}
         </div>
 
-        {/* Notifications */}
-        <div style={styles.iconBtn}>
-          🔔
-        </div>
+       {/* Notifications */}
+<div
+  style={styles.notifWrapper}
+  onClick={() => navigate('/notifications')}
+>
+  <span style={styles.iconBtn}>🔔</span>
+  {unreadCount > 0 && (
+    <span style={styles.notifBadge}>
+      {unreadCount > 9 ? '9+' : unreadCount}
+    </span>
+  )}
+</div>
 
         {/* Profile */}
         <div style={styles.profileWrapper}>
@@ -233,6 +260,27 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#374151',
     cursor: 'pointer',
   },
+  notifWrapper: {
+  position: 'relative',
+  cursor: 'pointer',
+  padding: '4px',
+},
+notifBadge: {
+  position: 'absolute',
+  top: '-2px',
+  right: '-2px',
+  backgroundColor: '#dc2626',
+  color: '#ffffff',
+  fontSize: '10px',
+  fontWeight: '600',
+  minWidth: '16px',
+  height: '16px',
+  borderRadius: '99px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0 4px',
+},
 }
 
 export default Header

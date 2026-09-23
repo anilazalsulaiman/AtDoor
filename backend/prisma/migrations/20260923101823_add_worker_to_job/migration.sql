@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `job` ADD COLUMN `workerId` INTEGER NULL;
+
+-- AddForeignKey
+ALTER TABLE `Job` ADD CONSTRAINT `Job_workerId_fkey` FOREIGN KEY (`workerId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

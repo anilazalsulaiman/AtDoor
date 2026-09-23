@@ -51,9 +51,10 @@ model User {
   updatedAt     DateTime     @updatedAt
 
   // Relations
-  userRoles     UserRole[]
-  modeSwitches  ModeSwitch[]
-  jobs                Job[]
+  userRoles           UserRole[]
+  modeSwitches        ModeSwitch[]
+  createdJobs         Job[]  @relation("CreatedJobs")
+  acceptedJobs        Job[]  @relation("AcceptedJobs")
   categorySuggestions CategorySuggestion[]
   notifications       Notification[]
 }
@@ -189,6 +190,7 @@ model Job {
   categoryId          Int?
   suggestionId        Int?
   creatorId           Int
+  workerId            Int?  
   budgetMin           Float?
   budgetMax           Float?
   location            String
@@ -203,7 +205,8 @@ model Job {
   // Relations
   category            Category?         @relation(fields: [categoryId], references: [id])
   suggestion          CategorySuggestion? @relation(fields: [suggestionId], references: [id])
-  creator             User              @relation(fields: [creatorId], references: [id])
+  creator             User              @relation("CreatedJobs", fields: [creatorId], references: [id])
+  worker              User?             @relation("AcceptedJobs", fields: [workerId], references: [id])
   photos              JobPhoto[]
   notifications       Notification[]
 }

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import type { AuthRequest } from '../middleware/auth.middleware'
 import prisma from '../config/db'
 import { hashPassword, comparePassword } from '../utils/hash'
 import { generateToken } from '../utils/jwt'
@@ -162,5 +163,57 @@ export const login = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Login error:', error)
     return sendError(res, 'Login failed', 500)
+  }
+}
+// ─────────────────────────────────────────
+// SWITCH MODE
+// ─────────────────────────────────────────
+export const switchMode = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!
+    const { mode } = req.body
+
+    if (!mode || !['CREATOR', 'WORKER'].includes(mode)) {
+      return sendError(res, 'Invalid mode. Must be CREATOR or WORKER', 400)
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      return sendError(res, 'User not found', 404)
+    }
+
+    // Save mode switch history
+    await prisma.modeSwitch.create({
+      data: {
+        userId,
+        fromMode: user.activeMode,
+        toMode: mode as any,
+      },
+    })
+
+    // Update active mode in DB
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { activeMode: mode as any },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        dob: true,
+        defaultMode: true,
+        activeMode: true,
+        createdAt: true,
+      },
+    })
+
+    return sendSuccess(res, updatedUser, `Switched to ${mode} mode`)
+  } catch (error) {
+    console.error('Switch mode error:', error)
+    return sendError(res, 'Failed to switch mode', 500)
   }
 }

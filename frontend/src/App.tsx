@@ -5,7 +5,11 @@ import Login from './pages/auth/Login'
 import Home from './pages/Home'
 import Profile from './pages/Profile'
 import PostJob from './pages/PostJob'
-
+import MyJobs from './pages/MyJobs'
+import BrowseJobs from './pages/jobs/BrowseJobs'
+import JobDetail from './pages/jobs/JobDetail'
+import Notifications from './pages/Notifications'
+import MyWork from './pages/MyWork'
 
 // Protected route — redirects to login if not logged in
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -55,6 +59,31 @@ const AppRoutes = () => {
 <Route path="/profile" element={
   <ProtectedRoute>
     <Profile />
+  </ProtectedRoute>
+} />
+<Route path="/my-jobs" element={
+  <ProtectedRoute>
+    <MyJobs />
+  </ProtectedRoute>
+} />
+<Route path="/browse-jobs" element={
+  <ProtectedRoute>
+    <BrowseJobs />
+  </ProtectedRoute>
+} />
+<Route path="/jobs/:id" element={
+  <ProtectedRoute>
+    <JobDetail />
+  </ProtectedRoute>
+} />
+<Route path="/notifications" element={
+  <ProtectedRoute>
+    <Notifications />
+  </ProtectedRoute>
+} />
+<Route path="/my-work" element={
+  <ProtectedRoute>
+    <MyWork />
   </ProtectedRoute>
 } />
     </Routes>
