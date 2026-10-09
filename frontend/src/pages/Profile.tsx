@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Header from '../components/layout/Header'
+import RatingBar from '../components/RatingBar'
+import api from '../utils/api'
 
 const Profile = () => {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<'creator' | 'worker'>('creator')
+  const [ratingsData, setRatingsData] = useState<any>(null)
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -13,7 +16,18 @@ const Profile = () => {
       year: 'numeric',
     })
   }
-
+useEffect(() => {
+  const fetchRatings = async () => {
+    if (!user?.id) return
+    try {
+      const res = await api.get(`/ratings/${user.id}/summary`)
+      setRatingsData(res.data.data)
+    } catch (err) {
+      console.error('Failed to fetch ratings')
+    }
+  }
+  fetchRatings()
+}, [user?.id])
   return (
     <div>
       <Header />
@@ -115,27 +129,49 @@ const Profile = () => {
           </div>
 
           <div style={styles.tabContent}>
-            {activeTab === 'creator' ? (
-              <div style={styles.comingSoon}>
-                <div style={styles.comingSoonIcon}>📋</div>
-                <p style={styles.comingSoonTitle}>Creator Activities</p>
-                <p style={styles.comingSoonText}>
-                  Your posted jobs and hiring history will appear here.
-                </p>
-              </div>
-            ) : (
-              <div style={styles.comingSoon}>
-                <div style={styles.comingSoonIcon}>🛠️</div>
-                <p style={styles.comingSoonTitle}>Worker Activities</p>
-                <p style={styles.comingSoonText}>
-                  Your skills, work history and points will appear here.
-                </p>
-              </div>
-            )}
-          </div>
+  {activeTab === 'creator' ? (
+    <div>
+      {ratingsData && (
+        <div style={{ marginBottom: '20px' }}>
+          <RatingBar
+            average={ratingsData.asCreator.average}
+            total={ratingsData.asCreator.total}
+            distribution={ratingsData.asCreator.distribution}
+          />
         </div>
-
+      )}
+      <div style={styles.comingSoon}>
+        <div style={styles.comingSoonIcon}>📋</div>
+        <p style={styles.comingSoonTitle}>Creator Activities</p>
+        <p style={styles.comingSoonText}>
+          Your posted jobs and hiring history will appear here.
+        </p>
       </div>
+    </div>
+  ) : (
+    <div>
+      {ratingsData && (
+        <div style={{ marginBottom: '20px' }}>
+          <RatingBar
+            average={ratingsData.asWorker.average}
+            total={ratingsData.asWorker.total}
+            distribution={ratingsData.asWorker.distribution}
+          />
+        </div>
+      )}
+      <div style={styles.comingSoon}>
+        <div style={styles.comingSoonIcon}>🛠️</div>
+        <p style={styles.comingSoonTitle}>Worker Activities</p>
+        <p style={styles.comingSoonText}>
+          Your skills, work history and points will appear here.
+        </p>
+      </div>
+    </div>
+  )}
+</div>
+</div>
+
+</div>
 
       {/* Responsive styles */}
       <style>{`

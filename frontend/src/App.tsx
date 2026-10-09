@@ -10,6 +10,11 @@ import BrowseJobs from './pages/jobs/BrowseJobs'
 import JobDetail from './pages/jobs/JobDetail'
 import Notifications from './pages/Notifications'
 import MyWork from './pages/MyWork'
+import MySkills from './pages/MySkills'
+import AddSkill from './pages/AddSkill'
+import ViewSkill from './pages/ViewSkill'
+import EditSkill from './pages/EditSkill'
+import BrowseSkills from './pages/jobs/BrowseSkills'
 
 // Protected route — redirects to login if not logged in
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -86,6 +91,12 @@ const AppRoutes = () => {
     <MyWork />
   </ProtectedRoute>
 } />
+<Route path="/my-skills" element={<ProtectedRoute><MySkills /></ProtectedRoute>} />
+<Route path="/add-skill" element={<ProtectedRoute><AddSkill /></ProtectedRoute>} />
+<Route path="/skills/:id" element={<ProtectedRoute><ViewSkill /></ProtectedRoute>} />
+<Route path="/edit-skill/:id" element={<ProtectedRoute><EditSkill /></ProtectedRoute>} />
+<Route path="/browse-skills" element={<ProtectedRoute><BrowseSkills /></ProtectedRoute>} />
+
     </Routes>
   )
 }

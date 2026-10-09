@@ -26,6 +26,7 @@ interface Job {
     status: string
   } | null
   photos: { photoUrl: string }[]
+  ratings: { id: number; direction: string; stars: number; comment: string | null; fromUserId: number }[]
 }
 
 const statusConfig: { [key: string]: { label: string; color: string; bg: string; icon: string } } = {
@@ -205,6 +206,15 @@ const MyJobs = () => {
                     </span>
                   )}
                 </div>
+                {job.ratings.length > 0 && (
+  <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', flexWrap: 'wrap' }}>
+    {job.ratings.map((r) => (
+      <div key={r.id} style={{ fontSize: '12px', color: '#6b7280', backgroundColor: '#fffbeb', padding: '4px 10px', borderRadius: '99px' }}>
+        {r.direction === 'CREATOR_TO_WORKER' ? 'You rated worker' : 'Worker rated you'}: {'⭐'.repeat(r.stars)}
+      </div>
+    ))}
+  </div>
+)}
 
                 {/* Footer row */}
                 <div style={styles.cardFooter}>

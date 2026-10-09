@@ -55,8 +55,11 @@ model User {
   modeSwitches        ModeSwitch[]
   createdJobs         Job[]  @relation("CreatedJobs")
   acceptedJobs        Job[]  @relation("AcceptedJobs")
+  skills              Skill[]  @relation("WorkerSkills")
   categorySuggestions CategorySuggestion[]
   notifications       Notification[]
+  ratingsGiven        Rating[]  @relation("RatingsGiven")
+  ratingsReceived     Rating[]  @relation("RatingsReceived")
 }
 
 // ─────────────────────────────────────────
@@ -155,6 +158,7 @@ model Category {
 
   // Relations
   jobs        Job[]
+  skills      Skill[]
   suggestions CategorySuggestion[] @relation("MergedCategory")
 }
 
@@ -201,6 +205,13 @@ model Job {
   expiresAt           Int               @default(7)
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
+  workStartedAt           DateTime?
+  workEndedAt             DateTime?
+  startAcceptedByCreator  Boolean   @default(false)
+  startAcceptedByWorker   Boolean   @default(false)
+  endAcceptedByCreator    Boolean   @default(false)
+  endAcceptedByWorker     Boolean   @default(false)
+  workLogs                JobWorkLog[]
 
   // Relations
   category            Category?         @relation(fields: [categoryId], references: [id])
@@ -209,6 +220,9 @@ model Job {
   worker              User?             @relation("AcceptedJobs", fields: [workerId], references: [id])
   photos              JobPhoto[]
   notifications       Notification[]
+  ratings             Rating[]
+  agreedAmount        Float?
+  negotiations        JobNegotiation[]
 }
 
 // ─────────────────────────────────────────
@@ -241,4 +255,213 @@ model Notification {
   // Relations
   user      User     @relation(fields: [userId], references: [id])
   job       Job?     @relation(fields: [jobId], references: [id])
+}
+// ─────────────────────────────────────────
+// ENUMS — Skill
+// ─────────────────────────────────────────
+
+enum WorkingDaysType {
+  DAILY
+  SPECIFIC_DAYS
+  SPECIFIC_DATES
+}
+
+enum WorkingTimeSlot {
+  ANYTIME
+  MORNING
+  EVENING
+  NIGHT
+}
+
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  EXPERT
+  CUSTOM
+}
+
+enum PricingType {
+  FIXED
+  RANGE
+}
+
+enum ProjectPreference {
+  ONSITE
+  REMOTE
+  ANY
+}
+
+enum PreferredCommunication {
+  CHAT
+  EMAIL
+  PHONE
+  ANY
+}
+
+enum SkillStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ─────────────────────────────────────────
+// SKILL (worker skill profile — many per worker)
+// ─────────────────────────────────────────
+
+model Skill {
+  id                     Int                     @id @default(autoincrement())
+  workerId               Int
+  categoryId             Int?
+  suggestedCategoryName  String?
+
+  skillTitle             String
+  description            String                  @db.Text
+  residenceLocation      String
+
+  // Working days
+  workingDaysType        WorkingDaysType?
+  preferredDays          Json?                   // ["MON","WED","FRI"]
+  preferredDates         Json?                   // ["2026-10-01","2026-10-05"]
+
+  // Working time
+preferredTimes         Json?                   // ["MORNING","EVENING"]
+
+  // Preferred locations (tags)
+  preferredLocations     Json?                   // ["Kochi","Kottayam"]
+
+  // Working type (multi-select)
+  workingTypes           Json?                   // ["HOURLY","CONTRACT"]
+
+  // Experience
+  experienceLevel        ExperienceLevel?
+  experienceYears        Int?
+  experienceMonths       Int?
+
+  // Pricing
+  pricingType            PricingType?
+  priceFixed             Float?
+  priceMin               Float?
+  priceMax               Float?
+
+  // Languages
+  languages              Json?                   // ["English","Malayalam"]
+
+  education              String?
+  projectPreference      ProjectPreference?
+  preferredCommunication PreferredCommunication?
+  aboutDescription       String?                 @db.Text
+
+  isAvailable            Boolean                 @default(true)
+  status                 SkillStatus             @default(ACTIVE)
+
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  // Relations
+  worker                 User                    @relation("WorkerSkills", fields: [workerId], references: [id])
+  category               Category?               @relation(fields: [categoryId], references: [id])
+  portfolioLinks         SkillPortfolioLink[]
+  certifications         SkillCertification[]
+}
+
+// ─────────────────────────────────────────
+// SKILL PORTFOLIO LINK (repeatable)
+// ─────────────────────────────────────────
+
+model SkillPortfolioLink {
+  id        Int      @id @default(autoincrement())
+  skillId   Int
+  url       String
+  createdAt DateTime @default(now())
+
+  skill     Skill    @relation(fields: [skillId], references: [id])
+}
+
+// ─────────────────────────────────────────
+// SKILL CERTIFICATION (repeatable)
+// ─────────────────────────────────────────
+
+model SkillCertification {
+  id        Int      @id @default(autoincrement())
+  skillId   Int
+  name      String
+  issuer    String?
+  createdAt DateTime @default(now())
+
+  skill     Skill    @relation(fields: [skillId], references: [id])
+}
+enum WorkLogType {
+  START
+  RESCHEDULE
+  EXTENSION
+  MARK_DONE
+}
+
+enum WorkLogStatus {
+  PENDING
+  ACCEPTED
+}
+
+model JobWorkLog {
+  id            Int           @id @default(autoincrement())
+  jobId         Int
+  type          WorkLogType
+  proposedBy    Int
+  acceptedBy    Int?
+  oldStartTime  DateTime?
+  oldEndTime    DateTime?
+  newStartTime  DateTime?
+  newEndTime    DateTime?
+  status        WorkLogStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  acceptedAt    DateTime?
+
+  job           Job           @relation(fields: [jobId], references: [id])
+}
+
+// ─────────────────────────────────────────
+// RATING (bidirectional, per job)
+// ─────────────────────────────────────────
+
+enum RatingDirection {
+  CREATOR_TO_WORKER
+  WORKER_TO_CREATOR
+}
+
+model Rating {
+  id          Int             @id @default(autoincrement())
+  jobId       Int
+  fromUserId  Int
+  toUserId    Int
+  direction   RatingDirection
+  stars       Int
+  comment     String?
+  createdAt   DateTime        @default(now())
+
+  job         Job             @relation(fields: [jobId], references: [id])
+  fromUser    User            @relation("RatingsGiven", fields: [fromUserId], references: [id])
+  toUser      User            @relation("RatingsReceived", fields: [toUserId], references: [id])
+
+  @@unique([jobId, direction])
+}
+// ─────────────────────────────────────────
+// JOB NEGOTIATION
+// ─────────────────────────────────────────
+
+enum NegotiationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model JobNegotiation {
+  id          Int               @id @default(autoincrement())
+  jobId       Int
+  proposedBy  Int
+  amount      Float
+  status      NegotiationStatus @default(PENDING)
+  respondedBy Int?
+  createdAt   DateTime          @default(now())
+  respondedAt DateTime?
+
+  job         Job               @relation(fields: [jobId], references: [id])
 }

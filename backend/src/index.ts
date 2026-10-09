@@ -5,6 +5,8 @@ import authRoutes from './routes/auth.routes'
 import categoryRoutes from './routes/category.routes'
 import jobRoutes from './routes/job.routes'
 import notificationRoutes from './routes/notification.routes'
+import skillRoutes from './routes/skill.routes'
+import ratingRoutes from './routes/rating.routes'
 
 dotenv.config()
 
@@ -28,6 +30,8 @@ app.use('/api/auth', authRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/jobs', jobRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/skills', skillRoutes)
+app.use('/api/ratings', ratingRoutes)
 
 // Start server
 app.listen(PORT, () => {
